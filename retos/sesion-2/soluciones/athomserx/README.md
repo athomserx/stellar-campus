@@ -6,8 +6,18 @@ Al momento de desplegar el contrato (por ejemplo, usando el SDK de Stellar) con 
 
 2. ¿Por qué un asistente con una wallet recién creada no podría contribuir a esa campaña? ¿Qué le falta a su cuenta?
 
-Para poder crear una wallet, se necesita añadir fondos. Cuando una persona crea una Wallet usando, por ejemplo, Freighter, esta parece usar Friendbot de Stellar para fondearla en Testnet al inicio, pero ésta aún no está "activa" para Mainnet. Freighter pide fondearla con al menos 2XLM para ello, por lo que en primera instancia y solamente habiendo creado la Wallet, realmente no se podría contribuir porque la wallet no está creada realmente en Mainnet.
+Para la campaña creada en USDC, las personas necesitarían configurar la trustline de su cuenta para poder enviar o recibir un asset diferente a XLM, por lo que una persona con su cuenta recién creada no podría contribuir.
 
 3. ¿Qué le agregarías al contrato o al frontend para que esa persona no se quede trabada?
 
-En el contrato, usaría la función [`exists`](https://docs.rs/soroban-sdk/latest/soroban_sdk/struct.Address.html#method.exists) de Soroban en la función de `contribute` para validar que la dirección de la Wallet exista; si no existe, lanzaría un error, habiéndolo antes añadido al Enum como `NoExistingUser = 12`. Del lado del frontend, al atrapar este error al intentar realizar la donación, mostraria un mensaje al usuario diciendo que la cuenta actual no está inicializada y sugiriéndole que fondee su cuenta para poder activarla. Sin embargo, es probable que él ya se haya dado cuenta de esto al intentar realizar la transacción y que su app de wallet se lo muestre.
+Añadiría una función como `can_donate` en el contrato para validar que la persona que está realizando la transacción esté autorizada a tener USDC dada su trustline, y lo llamaría desde  el frontend. La función podría contener algo como `let usdc = StellarAssetClient::new(&env, &usdc_sac);` y `usdc.authorized(&donor)`, usando [Stellar Asset Contract](https://developers.stellar.org/docs/tokens/stellar-asset-contract) para USDC.
+O usaría RPC de Soroban, según se indica en la [documentación](https://developers.stellar.org/docs/build/guides/basics/verify-trustlines), de la siguiente manera:
+```
+const USDC = new Asset(
+  "USDC",
+  "${wallet_address}",
+);
+```
+y
+`rpc.getAssetBalance(receiver, USDC));` para poder confirmar la trustline para ese asset en específico.
+Finalmente le mostraría un mensaje al usuario indicando que debe configurar este asset en su wallet.
